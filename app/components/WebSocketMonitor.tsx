@@ -8,12 +8,12 @@ export default function WebSocketMonitor() {
   const { webSocket, setWebSocket, setConnectionState, connectionState } =
     useUserStore();
 
-  useEffect(() => {
-    console.log(webSocket);
-    if (connectionState === 'connected' && webSocket) {
-      router.replace("/home");
-    }
-  }, [webSocket, setConnectionState, setWebSocket, pathName]);
+  // useEffect(() => {
+  //   console.log(webSocket);
+  //   if (connectionState === 'connected' && webSocket) {
+  //     router.replace("/home");
+  //   }
+  // }, [webSocket, setConnectionState, setWebSocket, pathName]);
 
   return null;
 }
