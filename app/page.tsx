@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { Toaster, toast } from "react-hot-toast";
 
 export default function Home() {
   const [mode, setMode] = useState<"server" | "client">("client");
@@ -10,18 +12,116 @@ export default function Home() {
     username: "",
     folderPath: "",
   });
+  const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
+  const [status, setStatus] = useState<string>("Disconnected");
+  const [messages, setMessages] = useState<string[]>([]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === "server") {
-      console.log("Starting server with:", formData);
-    } else {
-      console.log("Connecting client with:", formData);
+  
+    try {
+      if (mode === "client") {
+        // Client connection logic
+        if (wsConnection) {
+          wsConnection.close();
+        }
+  
+        // Validate required fields
+        if (!formData.ipAddress) {
+          throw new Error("IP address is required");
+        }
+  
+        const wsUrl = `ws://${formData.ipAddress}:8080/ws`;
+        console.log("Connecting client with:", wsUrl);
+  
+        try {
+          const ws = new WebSocket(wsUrl);
+  
+          // Set up WebSocket handlers
+          ws.onopen = () => {
+            setStatus("Connecting...");
+            // Send structured handshake data
+            ws.send(JSON.stringify({
+              username: formData.username,
+              folderPath: formData.folderPath
+            }));
+            setStatus("Connected");
+            setWsConnection(ws);
+          };
+  
+          ws.onmessage = (event) => {
+            setMessages(prev => [...prev, event.data]);
+          };
+  
+          ws.onclose = () => {
+            setStatus("Disconnected");
+            setWsConnection(null);
+          };
+  
+          ws.onerror = (error: Event) => {
+            throw new Error(`WebSocket error: ${error}`);
+          };
+  
+        } catch (error: any) {
+          console.error("WebSocket initialization failed:", error);
+          setStatus("Connection Error");
+          toast.error(`Connection failed: ${error.message}`);
+        }
+  
+      } else {
+        // Server startup logic
+        toast.loading("Starting WebSocket server...");
+  
+        // Validate server requirements
+        if (!formData.folderPath) {
+          toast.dismiss();
+          throw new Error("Folder path is required for server mode");
+        }
+  
+        try {
+          const response = await axios.post(
+            "http://localhost:5000/api/start",
+            {
+              IP: formData.ipAddress,
+              Username: formData.username,
+              StoreFolderPath: formData.folderPath,
+            },
+            {
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+  
+          toast.dismiss();
+          toast.success("WebSocket server is running!");
+          setStatus("Server Running");
+  
+        } catch (error: any) {
+          toast.dismiss();
+          console.error("Server startup failed:", error);
+          setStatus("Server Error");
+          toast.error(`Failed to start server: ${error.response?.data?.message || error.message}`);
+        }
+      }
+    } catch (error: any) {
+      console.error("Form submission error:", error);
+      toast.error(error.message);
     }
   };
 
+  useEffect(() => {
+    return () => {
+      // Cleanup WebSocket connection on component unmount
+      if (wsConnection) {
+        wsConnection.close();
+      }
+    };
+  }, [wsConnection]);
+
   return (
     <main className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      <Toaster position="top-center" />
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-white">P2P File Transfer</h1>
