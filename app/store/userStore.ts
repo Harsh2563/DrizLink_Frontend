@@ -9,11 +9,13 @@ interface UserState {
   ipAddress: string
   role: UserRole
   connectionState: ConnectionState
+  webSocket: WebSocket | null
   setUsername: (username: string) => void
   setFolderPath: (path: string) => void
   setIpAddress: (ip: string) => void
   setRole: (role: UserRole) => void
   setConnectionState: (state: ConnectionState) => void
+  setWebSocket: (socket: WebSocket | null) => void
   reset: () => void
 }
 
@@ -23,6 +25,7 @@ const initialState = {
   ipAddress: '',
   role: 'client' as UserRole,
   connectionState: 'disconnected' as ConnectionState,
+  webSocket: null as WebSocket | null,
 }
 
 export const useUserStore = create<UserState>((set) => ({
@@ -33,5 +36,6 @@ export const useUserStore = create<UserState>((set) => ({
   setIpAddress: (ipAddress) => set({ ipAddress }),
   setRole: (role) => set({ role }),
   setConnectionState: (connectionState) => set({ connectionState }),
+  setWebSocket: (webSocket) => set({ webSocket }),
   reset: () => set(initialState),
 }))

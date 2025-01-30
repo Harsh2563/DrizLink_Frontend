@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Toaster, toast } from "react-hot-toast";
 import { useUserStore } from './store/userStore';
+import WebSocketMonitor from './components/WebSocketMonitor';
 
 export default function Home() {
-  const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
   const [messages, setMessages] = useState<string[]>([]);
 
   // Global state
@@ -17,20 +17,24 @@ export default function Home() {
     ipAddress,
     role,
     connectionState,
+    webSocket,
     setUsername,
     setFolderPath,
     setIpAddress,
     setRole,
     setConnectionState,
+    setWebSocket,
   } = useUserStore();
-
+  console.log(connectionState);
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
   
     try {
       if (role === "client") {
-        if (wsConnection) {
-          wsConnection.close();
+        if (webSocket) {
+          webSocket.close();
+          setWebSocket(null);
         }
   
         if (!ipAddress) {
@@ -49,21 +53,17 @@ export default function Home() {
           // Send folder path second
           ws.send(folderPath);
           setConnectionState('connected');
-          setWsConnection(ws);
+          setWebSocket(ws);
         };
   
         ws.onmessage = (event) => {
           setMessages(prev => [...prev, event.data]);
         };
   
-        ws.onclose = () => {
-          setConnectionState('disconnected');
-          setWsConnection(null);
-        };
-  
         ws.onerror = (error: Event) => {
           toast.error(`Connection error: ${error.type}`);
           setConnectionState('disconnected');
+          setWebSocket(null);
         };
   
       } else {
@@ -107,20 +107,23 @@ export default function Home() {
       console.error("Form submission error:", error);
       toast.error(error.message);
       setConnectionState('disconnected');
+      setWebSocket(null);
     }
   };
 
   useEffect(() => {
     return () => {
-      if (wsConnection) {
-        wsConnection.close();
+      if (webSocket) {
+        webSocket.close();
+        setWebSocket(null);
         setConnectionState('disconnected');
       }
     };
-  }, [wsConnection]);
+  }, [webSocket, setWebSocket, setConnectionState]);
 
   return (
     <main className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      <WebSocketMonitor />
       <Toaster position="top-center" />
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
