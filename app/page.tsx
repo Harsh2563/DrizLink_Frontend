@@ -21,12 +21,10 @@ export default function Home() {
   
     try {
       if (mode === "client") {
-        // Client connection logic
         if (wsConnection) {
           wsConnection.close();
         }
   
-        // Validate required fields
         if (!formData.ipAddress) {
           throw new Error("IP address is required");
         }
@@ -34,39 +32,31 @@ export default function Home() {
         const wsUrl = `ws://${formData.ipAddress}:8080/ws`;
         console.log("Connecting client with:", wsUrl);
   
-        try {
-          const ws = new WebSocket(wsUrl);
+        const ws = new WebSocket(wsUrl);
   
-          // Set up WebSocket handlers
-          ws.onopen = () => {
-            setStatus("Connecting...");
-            // Send structured handshake data
-            ws.send(JSON.stringify({
-              username: formData.username,
-              folderPath: formData.folderPath
-            }));
-            setStatus("Connected");
-            setWsConnection(ws);
-          };
+        ws.onopen = () => {
+          setStatus("Connecting...");
+          // Send username first
+          ws.send(formData.username);
+          // Send folder path second
+          ws.send(formData.folderPath);
+          setStatus("Connected");
+          setWsConnection(ws);
+        };
   
-          ws.onmessage = (event) => {
-            setMessages(prev => [...prev, event.data]);
-          };
+        ws.onmessage = (event) => {
+          setMessages(prev => [...prev, event.data]);
+        };
   
-          ws.onclose = () => {
-            setStatus("Disconnected");
-            setWsConnection(null);
-          };
+        ws.onclose = () => {
+          setStatus("Disconnected");
+          setWsConnection(null);
+        };
   
-          ws.onerror = (error: Event) => {
-            throw new Error(`WebSocket error: ${error}`);
-          };
-  
-        } catch (error: any) {
-          console.error("WebSocket initialization failed:", error);
+        ws.onerror = (error: Event) => {
+          toast.error(`Connection error: ${error.type}`);
           setStatus("Connection Error");
-          toast.error(`Connection failed: ${error.message}`);
-        }
+        };
   
       } else {
         // Server startup logic
