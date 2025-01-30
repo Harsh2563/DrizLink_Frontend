@@ -4,43 +4,51 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Toaster, toast } from "react-hot-toast";
+import { useUserStore } from './store/userStore';
 
 export default function Home() {
-  const [mode, setMode] = useState<"server" | "client">("client");
-  const [formData, setFormData] = useState({
-    ipAddress: "",
-    username: "",
-    folderPath: "",
-  });
   const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
-  const [status, setStatus] = useState<string>("Disconnected");
   const [messages, setMessages] = useState<string[]>([]);
+
+  // Global state
+  const {
+    username,
+    folderPath,
+    ipAddress,
+    role,
+    connectionState,
+    setUsername,
+    setFolderPath,
+    setIpAddress,
+    setRole,
+    setConnectionState,
+  } = useUserStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
   
     try {
-      if (mode === "client") {
+      if (role === "client") {
         if (wsConnection) {
           wsConnection.close();
         }
   
-        if (!formData.ipAddress) {
+        if (!ipAddress) {
           throw new Error("IP address is required");
         }
   
-        const wsUrl = `ws://${formData.ipAddress}:8080/ws`;
+        const wsUrl = `ws://${ipAddress}:8080/ws`;
         console.log("Connecting client with:", wsUrl);
   
+        setConnectionState('connecting');
         const ws = new WebSocket(wsUrl);
   
         ws.onopen = () => {
-          setStatus("Connecting...");
           // Send username first
-          ws.send(formData.username);
+          ws.send(username);
           // Send folder path second
-          ws.send(formData.folderPath);
-          setStatus("Connected");
+          ws.send(folderPath);
+          setConnectionState('connected');
           setWsConnection(ws);
         };
   
@@ -49,13 +57,13 @@ export default function Home() {
         };
   
         ws.onclose = () => {
-          setStatus("Disconnected");
+          setConnectionState('disconnected');
           setWsConnection(null);
         };
   
         ws.onerror = (error: Event) => {
           toast.error(`Connection error: ${error.type}`);
-          setStatus("Connection Error");
+          setConnectionState('disconnected');
         };
   
       } else {
@@ -63,18 +71,19 @@ export default function Home() {
         toast.loading("Starting WebSocket server...");
   
         // Validate server requirements
-        if (!formData.folderPath) {
+        if (!folderPath) {
           toast.dismiss();
           throw new Error("Folder path is required for server mode");
         }
   
         try {
+          setConnectionState('connecting');
           const response = await axios.post(
             "http://localhost:5000/api/start",
             {
-              IP: formData.ipAddress,
-              Username: formData.username,
-              StoreFolderPath: formData.folderPath,
+              IP: ipAddress,
+              Username: username,
+              StoreFolderPath: folderPath,
             },
             {
               headers: {
@@ -85,26 +94,27 @@ export default function Home() {
   
           toast.dismiss();
           toast.success("WebSocket server is running!");
-          setStatus("Server Running");
+          setConnectionState('connected');
   
         } catch (error: any) {
           toast.dismiss();
           console.error("Server startup failed:", error);
-          setStatus("Server Error");
+          setConnectionState('disconnected');
           toast.error(`Failed to start server: ${error.response?.data?.message || error.message}`);
         }
       }
     } catch (error: any) {
       console.error("Form submission error:", error);
       toast.error(error.message);
+      setConnectionState('disconnected');
     }
   };
 
   useEffect(() => {
     return () => {
-      // Cleanup WebSocket connection on component unmount
       if (wsConnection) {
         wsConnection.close();
+        setConnectionState('disconnected');
       }
     };
   }, [wsConnection]);
@@ -116,14 +126,15 @@ export default function Home() {
         <div className="text-center">
           <h1 className="text-3xl font-bold text-white">P2P File Transfer</h1>
           <p className="mt-2 text-gray-400">Choose your connection mode</p>
+          <p className="mt-1 text-sm text-gray-500">Status: {connectionState}</p>
         </div>
 
         <div className="bg-gray-800 rounded-lg p-6 shadow-xl">
           <div className="flex space-x-4 mb-6">
             <button
-              onClick={() => setMode("client")}
+              onClick={() => setRole("client")}
               className={`flex-1 py-2 rounded-md transition-colors ${
-                mode === "client"
+                role === "client"
                   ? "bg-blue-600 text-white"
                   : "bg-gray-700 text-gray-300 hover:bg-gray-600"
               }`}
@@ -131,9 +142,9 @@ export default function Home() {
               Client
             </button>
             <button
-              onClick={() => setMode("server")}
+              onClick={() => setRole("server")}
               className={`flex-1 py-2 rounded-md transition-colors ${
-                mode === "server"
+                role === "server"
                   ? "bg-blue-600 text-white"
                   : "bg-gray-700 text-gray-300 hover:bg-gray-600"
               }`}
@@ -144,58 +155,52 @@ export default function Home() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="ipAddress" className="block text-gray-300 mb-1">
-                IP Address
-              </label>
-              <input
-                type="text"
-                id="ipAddress"
-                value={formData.ipAddress}
-                onChange={(e) =>
-                  setFormData({ ...formData, ipAddress: e.target.value })
-                }
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter IP address"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="username" className="block text-gray-300 mb-1">
+              <label className="block text-gray-300 text-sm font-medium mb-2">
                 Username
               </label>
               <input
                 type="text"
-                id="username"
-                value={formData.username}
-                onChange={(e) =>
-                  setFormData({ ...formData, username: e.target.value })
-                }
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter username"
+                required
               />
             </div>
 
             <div>
-              <label htmlFor="folderPath" className="block text-gray-300 mb-1">
+              <label className="block text-gray-300 text-sm font-medium mb-2">
+                {role === "client" ? "Server IP Address" : "Your IP Address"}
+              </label>
+              <input
+                type="text"
+                value={ipAddress}
+                onChange={(e) => setIpAddress(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter IP address"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-gray-300 text-sm font-medium mb-2">
                 Folder Path
               </label>
               <input
                 type="text"
-                id="folderPath"
-                value={formData.folderPath}
-                onChange={(e) =>
-                  setFormData({ ...formData, folderPath: e.target.value })
-                }
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={folderPath}
+                onChange={(e) => setFolderPath(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter folder path"
+                required
               />
             </div>
 
             <button
               type="submit"
-              className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800"
             >
-              {mode === "server" ? "Start Server" : "Connect"}
+              {role === "server" ? "Start Server" : "Connect"}
             </button>
           </form>
         </div>
