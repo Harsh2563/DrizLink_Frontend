@@ -95,7 +95,32 @@ export default function Home() {
           toast.dismiss();
           toast.success("WebSocket server is running!");
           setConnectionState('connected');
-  
+
+          //Add websocket connection for ther server itself
+          const wsUrl = `ws://${ipAddress}:8080/ws`;
+          const ws = new WebSocket(wsUrl);
+
+          ws.onopen = () => {
+            // Send server's own credentials
+            ws.send(username);
+            ws.send(folderPath);
+            setWebSocket(ws);
+          };
+        
+          ws.onmessage = (event) => {
+            setMessages(prev => [...prev, event.data]);
+          };
+
+          ws.onerror = (error: Event) => {
+            toast.error(`Server WS error: ${error.type}`);
+            setConnectionState('disconnected');
+            setWebSocket(null);
+          };
+          ws.onclose = () => {
+            setConnectionState('disconnected');
+            setWebSocket(null);
+          };
+
         } catch (error: any) {
           toast.dismiss();
           console.error("Server startup failed:", error);
