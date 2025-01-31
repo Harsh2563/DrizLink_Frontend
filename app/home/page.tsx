@@ -1,13 +1,43 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect } from 'react';
 import { useUserStore } from '../store/userStore';
 import { SearchIcon, FileIcon, FolderIcon, SettingsIcon, PlusIcon } from '../components/icons';
+import WebSocketMonitor from '../components/WebSocketMonitor';
+import { useEffect, useState } from 'react';
 
 export default function HomePage() {
-  const { username } = useUserStore();
+  const { connectionState, ipAddress, username, folderPath, setWebSocket, setConnectionState } = useUserStore()
+  const [isRehydrated, setIsRehydrated] = useState(false)
+  useEffect(() => {
+    const checkPersistedConnection = async () => {
+      if (connectionState !== 'connected' && ipAddress && username) {
+        try {
+          setConnectionState('connecting')
+          const ws = new WebSocket(`ws://${ipAddress}:8080/ws`)
+          
+          ws.onopen = () => {
+            ws.send(username)
+            ws.send(folderPath)
+            setWebSocket(ws)
+            setConnectionState('connected')
+          }
+        } catch (error) {
+          setConnectionState('disconnected')
+        }
+      }
+    }
 
+    checkPersistedConnection()
+  }, [])
+
+  // useEffect(() => {
+  //   const unsubscribe = useUserStore.persist.onFinishHydration(() => {
+  //     setIsRehydrated(true)
+  //   })
+  //   return () => unsubscribe()
+  // }, [])
+  
   // Animation variants
   const fadeIn = {
     hidden: { opacity: 0 },
@@ -19,14 +49,21 @@ export default function HomePage() {
     visible: { y: 0, opacity: 1 },
   };
 
+  // if (!isRehydrated) {
+  //   return <div>Loading...</div>
+  // }
+
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      className="flex flex-col h-screen bg-gradient-to-br from-gray-900 to-gray-800"
-    >
-      <motion.header
-        variants={slideUp}
+    <div>
+      <WebSocketMonitor />
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        className="flex flex-col h-screen bg-gradient-to-br from-gray-900 to-gray-800"
+      >
+        <WebSocketMonitor />
+        <motion.header
+          variants={slideUp}
         className="bg-gray-800/50 backdrop-blur-lg p-4 flex justify-between items-center border-b border-gray-700/50"
       >
         <div className="flex items-center space-x-3">
@@ -190,5 +227,6 @@ export default function HomePage() {
         </div>
       </motion.footer>
     </motion.div>
+    </div>
   );
 }

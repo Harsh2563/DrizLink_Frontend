@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
 
 type ConnectionState = 'connected' | 'connecting' | 'disconnected'
 type UserRole = 'client' | 'server'
@@ -28,14 +29,34 @@ const initialState = {
   webSocket: null as WebSocket | null,
 }
 
-export const useUserStore = create<UserState>((set) => ({
-  ...initialState,
-  
-  setUsername: (username) => set({ username }),
-  setFolderPath: (folderPath) => set({ folderPath }),
-  setIpAddress: (ipAddress) => set({ ipAddress }),
-  setRole: (role) => set({ role }),
-  setConnectionState: (connectionState) => set({ connectionState }),
-  setWebSocket: (webSocket) => set({ webSocket }),
-  reset: () => set(initialState),
-}))
+export const useUserStore = create<UserState>()(
+  persist(
+    (set) => ({
+      ...initialState,
+      setUsername: (username) => set({ username }),
+      setFolderPath: (folderPath) => set({ folderPath }),
+      setIpAddress: (ipAddress) => set({ ipAddress }),
+      setRole: (role) => set({ role }),
+      setConnectionState: (connectionState) => set({ connectionState }),
+      setWebSocket: (webSocket) => set({ webSocket }),
+      reset: () => set(initialState),
+    }),
+    {
+      name: 'user-storage',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        username: state.username,
+        folderPath: state.folderPath,
+        ipAddress: state.ipAddress,
+        role: state.role,
+        connectionState: state.connectionState,
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.setConnectionState('disconnected')
+          state.setWebSocket(null)
+        }
+      },
+    }
+  )
+)

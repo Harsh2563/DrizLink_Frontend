@@ -47,6 +47,13 @@ export default function Home() {
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    localStorage.setItem('connectionData', JSON.stringify({
+      username,
+      folderPath,
+      ipAddress,
+      role
+    }))
   
     try {
       if (role === "client") {
@@ -63,6 +70,10 @@ export default function Home() {
         console.log("Connecting client with:", wsUrl);
   
         setConnectionState('connecting');
+        const loadingToast = toast.loading("Establishing connection...", {
+          duration: Infinity,
+        });
+
         const ws = new WebSocket(wsUrl);
   
         ws.onopen = () => {
@@ -72,6 +83,11 @@ export default function Home() {
           ws.send(folderPath);
           setConnectionState('connected');
           setWebSocket(ws);
+          toast.dismiss(loadingToast);
+          toast.success("Connected successfully!", { 
+            duration: 3000,
+            icon: '🔗'
+          });
         };
   
         ws.onmessage = (event) => {
@@ -79,18 +95,24 @@ export default function Home() {
         };
   
         ws.onerror = (error: Event) => {
-          toast.error(`Connection error: ${error.type}`);
+          toast.dismiss(loadingToast);
+          toast.error(`Connection error: ${error.type}`, {
+            duration: 4000,
+            icon: '❌'
+          });
           setConnectionState('disconnected');
           setWebSocket(null);
         };
   
       } else {
         // Server startup logic
-        toast.loading("Starting WebSocket server...");
+        const loadingToast = toast.loading("Starting WebSocket server...", {
+          duration: Infinity,
+        });
   
         // Validate server requirements
         if (!folderPath) {
-          toast.dismiss();
+          toast.dismiss(loadingToast);
           throw new Error("Folder path is required for server mode");
         }
   
@@ -110,11 +132,14 @@ export default function Home() {
             }
           );
   
-          toast.dismiss();
-          toast.success("WebSocket server is running!");
+          toast.dismiss(loadingToast);
+          toast.success("WebSocket server is running!", {
+            duration: 3000,
+            icon: '🚀'
+          });
           setConnectionState('connected');
 
-          //Add websocket connection for ther server itself
+          //Add websocket connection for the server itself
           const wsUrl = `ws://${ipAddress}:8080/ws`;
           const ws = new WebSocket(wsUrl);
 
@@ -130,25 +155,39 @@ export default function Home() {
           };
 
           ws.onerror = (error: Event) => {
-            toast.error(`Server WS error: ${error.type}`);
+            toast.error(`Server WS error: ${error.type}`, {
+              duration: 4000,
+              icon: '❌'
+            });
             setConnectionState('disconnected');
             setWebSocket(null);
           };
+          
           ws.onclose = () => {
+            toast.error("Server connection closed", {
+              duration: 4000,
+              icon: '⚠️'
+            });
             setConnectionState('disconnected');
             setWebSocket(null);
           };
 
         } catch (error: any) {
-          toast.dismiss();
+          toast.dismiss(loadingToast);
           console.error("Server startup failed:", error);
           setConnectionState('disconnected');
-          toast.error(`Failed to start server: ${error.response?.data?.message || error.message}`);
+          toast.error(`Failed to start server: ${error.response?.data?.message || error.message}`, {
+            duration: 4000,
+            icon: '❌'
+          });
         }
       }
     } catch (error: any) {
       console.error("Form submission error:", error);
-      toast.error(error.message);
+      toast.error(error.message, {
+        duration: 4000,
+        icon: '❌'
+      });
       setConnectionState('disconnected');
       setWebSocket(null);
     }
@@ -179,6 +218,12 @@ export default function Home() {
       <WebSocketMonitor />
       <Toaster position="top-center" toastOptions={{
         className: 'bg-gray-800 text-gray-100',
+        duration: 4000,
+        style: {
+          background: 'rgba(31, 41, 55, 0.9)',
+          color: '#fff',
+          backdropFilter: 'blur(8px)',
+        },
       }} />
       
       <motion.div 
