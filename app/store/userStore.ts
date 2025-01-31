@@ -26,13 +26,14 @@ interface UserState {
 }
 
 type Message = {
-  content: string;
-  sender: string;
-  timestamp: string;
-  file?: {
-    name: string;
-    size: number;
-    type: string;
+  Id: string;
+  Content: string;
+  Sender: string;
+  Timestamp: string;
+  File?: {
+    Name: string;
+    Size: number;
+    Type: string;
   } | null;
 };
 
@@ -56,9 +57,13 @@ export const useUserStore = create<UserState>()(
       setRole: (role) => set({ role }),
       setConnectionState: (connectionState) => set({ connectionState }),
       setWebSocket: (webSocket) => set({ webSocket }),
-      addMessage: (message) => set((state) => ({
-        messages: [...state.messages, message]
-      })),
+      addMessage: (message) => set((state) => {
+        // Check for existing message by ID to prevent duplicates
+        if (state.messages.some(m => m.Id === message.Id)) {
+          return state;
+        }
+        return { messages: [...state.messages, message] };
+      }),
       clearMessages: () => set({ messages: [] }),
       reset: () => {
         const ws = get().webSocket
@@ -73,36 +78,40 @@ export const useUserStore = create<UserState>()(
         const ws = new WebSocket(`ws://${ipAddress}:8080/ws`)
 
         ws.onopen = () => {
-          ws.send(username)
-          ws.send(folderPath)
-          set({ webSocket: ws, connectionState: 'connected' })
+          // Send connection info as a single JSON message
+          ws.send(JSON.stringify({
+            Username: username,
+            FilePath: folderPath,
+          }))
+          set({ webSocket: ws, connectionState: 'connected' });
         }
 
         ws.onmessage = (event) => {
-          try {
+          try { 
             const rawData = event.data;
+            if (typeof rawData !== 'string') return;
+
+            // Handle both JSON and plain text messages
             let message: Message;
-            // First validate the message structure
-            const rawDataMessage = rawData.split(': ')[1];
-            message = JSON.parse(rawDataMessage);
+            // JSON message
+            message = JSON.parse(rawData.split(': ')[1]);
+            console.log(message);
+            
 
             // Validate message structure
-            if (!message.content || !message.sender) {
+            if (!message.Id || !message.Content || !message.Sender) {
               throw new Error('Invalid message format');
             }
-           console.log(message);
-            // Add the message to the store
-            addMessage(message);
+
+            get().addMessage(message);
           } catch (error) {
-            console.error('Error parsing message:', error)
-            // Handle non-JSON messages or format errors
-            if (typeof event.data === 'string') {
-              addMessage({
-                content: event.data,
-                sender: 'System',
-                timestamp: new Date().toLocaleTimeString()
-              });
-            }
+            console.error('Error handling message:', error);
+            get().addMessage({
+              Id: `err-${Date.now()}`,
+              Content: `Error: ${error instanceof Error ? error.message : 'Invalid message format'}`,
+              Sender: 'System',
+              Timestamp: new Date().toLocaleTimeString()
+            });
           }
         }
 
