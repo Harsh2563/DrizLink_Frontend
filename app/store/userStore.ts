@@ -1,3 +1,4 @@
+// store/userStore.ts
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 
@@ -18,6 +19,7 @@ interface UserState {
   setConnectionState: (state: ConnectionState) => void
   setWebSocket: (socket: WebSocket | null) => void
   reset: () => void
+  connectWebSocket: () => Promise<void>
 }
 
 const initialState = {
@@ -31,7 +33,7 @@ const initialState = {
 
 export const useUserStore = create<UserState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...initialState,
       setUsername: (username) => set({ username }),
       setFolderPath: (folderPath) => set({ folderPath }),
@@ -39,7 +41,32 @@ export const useUserStore = create<UserState>()(
       setRole: (role) => set({ role }),
       setConnectionState: (connectionState) => set({ connectionState }),
       setWebSocket: (webSocket) => set({ webSocket }),
-      reset: () => set(initialState),
+      reset: () => {
+        const ws = get().webSocket
+        if (ws) ws.close()
+        set(initialState)
+      },
+      connectWebSocket: async () => {
+        const { ipAddress, username, folderPath, webSocket } = get()
+        if (webSocket) return
+
+        set({ connectionState: 'connecting' })
+        const ws = new WebSocket(`ws://${ipAddress}:8080/ws`)
+
+        ws.onopen = () => {
+          ws.send(username)
+          ws.send(folderPath)
+          set({ webSocket: ws, connectionState: 'connected' })
+        }
+
+        ws.onerror = () => {
+          set({ connectionState: 'disconnected', webSocket: null })
+        }
+
+        ws.onclose = () => {
+          set({ connectionState: 'disconnected', webSocket: null })
+        }
+      }
     }),
     {
       name: 'user-storage',
@@ -50,13 +77,7 @@ export const useUserStore = create<UserState>()(
         ipAddress: state.ipAddress,
         role: state.role,
         connectionState: state.connectionState,
-      }),
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          state.setConnectionState('disconnected')
-          state.setWebSocket(null)
-        }
-      },
+      })
     }
   )
 )

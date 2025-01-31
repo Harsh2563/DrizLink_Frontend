@@ -4,66 +4,34 @@ import { useUserStore } from '../store/userStore';
 
 export default function WebSocketMonitor() {
   const router = useRouter();
-  const pathName = usePathname();
+  const pathname = usePathname();
   const {
-    webSocket,
+    connectionState,
+    ipAddress,
     username,
     folderPath,
-    ipAddress,
-    role,
-    connectionState,
-    setWebSocket,
-    setConnectionState
-  } = useUserStore()
+    connectWebSocket
+  } = useUserStore();
 
   useEffect(() => {
-    const attemptReconnect = async () => {
-      if (connectionState === 'connected' || !ipAddress) return
-      
-      try {
-        setConnectionState('connecting')
-        const ws = new WebSocket(`ws://${ipAddress}:8080/ws`)
-
-        ws.onopen = () => {
-          ws.send(username)
-          ws.send(folderPath)
-          setWebSocket(ws)
-          setConnectionState('connected')
-          router.replace('/home')
-        }
-
-        ws.onerror = () => {
-          setConnectionState('disconnected')
+    const handleConnection = async () => {
+        try {
+          await connectWebSocket()
+        } catch (error) {
           router.replace('/')
         }
-      } catch (error) {
-        setConnectionState('disconnected')
-        router.replace('/')
-      }
     }
 
-    // Attempt reconnect if we have persisted credentials
-    if (ipAddress && role) {
-      attemptReconnect()
-    }
-
-    return () => {
-      if (webSocket) {
-        webSocket.close()
-        setWebSocket(null)
-      }
-    }
-  }, [ipAddress, role])
+    handleConnection()
+  }, [pathname, connectionState])
 
   useEffect(() => {
-    if (connectionState === 'connected') {
-      router.replace("/home");
+    if (connectionState === 'connected' && pathname === '/') {
+      router.replace('/home')
+    } else if (connectionState === 'disconnected' && pathname === '/home') {
+      router.replace('/')
     }
-    if (connectionState === 'disconnected') {
-      router.replace("/");
-    }
+  }, [connectionState, pathname])
 
-  }, [connectionState]);
-
-  return null;
+  return null
 }
