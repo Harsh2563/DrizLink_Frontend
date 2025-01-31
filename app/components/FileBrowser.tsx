@@ -12,7 +12,7 @@ export default function FileBrowser() {
   return (
     <motion.div
       variants={fadeIn}
-      className="w-2/3 bg-gray-800/50 backdrop-blur-lg rounded-xl border border-gray-700/50 p-4"
+      className="overflow-y-hidden w-2/3 bg-gray-800/50 backdrop-blur-lg rounded-xl border border-gray-700/50 p-4"
     >
       <div className="flex items-center mb-4">
         <h2 className="text-gray-300 text-lg font-semibold">File Browser</h2>
