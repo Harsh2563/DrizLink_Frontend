@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
+import { useUserStore } from '../store/userStore';
 
 const fadeIn = {
   hidden: { opacity: 0 },
@@ -11,7 +12,7 @@ const fadeIn = {
 export default function ActiveUsers() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [autoScroll, setAutoScroll] = useState(true);
-
+  const { allUsers } = useUserStore();
   // Scroll handling
   useEffect(() => {
     if (autoScroll && containerRef.current) {
@@ -40,9 +41,9 @@ export default function ActiveUsers() {
         className="flex-1 overflow-y-auto custom-scrollbar pr-2"
       >
         <div className="space-y-3">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((user, index) => (
+          {allUsers.map((user, index) => (
             <motion.div
-              key={user}
+              key={user.UserId}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 }}
@@ -50,11 +51,11 @@ export default function ActiveUsers() {
             >
               <div className="relative">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500" />
-                <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-400 rounded-full ring-2 ring-gray-800" />
+                <div className={`absolute bottom-0 right-0 w-2 h-2 rounded-full ring-2 ring-gray-800 ${user.IsOnline ? 'bg-green-400' : 'bg-gray-400'}`} />
               </div>
               <div className="ml-3">
-                <div className="text-gray-200 font-medium">User {index + 1}</div>
-                <div className="text-sm text-gray-400">Sharing 5 files</div>
+                <div className="text-gray-200 font-medium">{user.Username}</div>
+                {/* <div className="text-sm text-gray-400"></div> */}
               </div>
             </motion.div>
           ))}

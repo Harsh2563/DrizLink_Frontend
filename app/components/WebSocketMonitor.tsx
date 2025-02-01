@@ -1,16 +1,16 @@
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUserStore } from '../store/userStore';
+import axios from 'axios';
 
 export default function WebSocketMonitor() {
   const router = useRouter();
   const pathname = usePathname();
   const {
     connectionState,
-    ipAddress,
-    username,
-    folderPath,
-    connectWebSocket
+    messages,
+    connectWebSocket,
+    setAllUsers,
   } = useUserStore();
 
   useEffect(() => {
@@ -24,6 +24,14 @@ export default function WebSocketMonitor() {
 
     handleConnection()
   }, [pathname, connectionState])
+
+  useEffect(() => {
+    const getAllUsers = async () => {
+      const response = await axios.get('http://localhost:5000/api/getUsers')
+      setAllUsers(response.data)
+    }
+    getAllUsers()
+  }, [messages])
 
   useEffect(() => {
     if (connectionState === 'connected' && pathname === '/') {

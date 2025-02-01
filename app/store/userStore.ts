@@ -13,6 +13,7 @@ interface UserState {
   connectionState: ConnectionState
   webSocket: WebSocket | null
   messages: Message[]
+  allUsers: User[]
   addMessage: (message: Message) => void
   clearMessages: () => void
   setUsername: (username: string) => void
@@ -21,8 +22,18 @@ interface UserState {
   setRole: (role: UserRole) => void
   setConnectionState: (state: ConnectionState) => void
   setWebSocket: (socket: WebSocket | null) => void
+  setAllUsers: (users: User[]) => void
   reset: () => void
   connectWebSocket: () => Promise<void>
+}
+
+type User = {
+  UserId: string;
+  Username: string;
+  StoreFilePath: string;
+  Conn: WebSocket | null;
+  IsOnline: boolean;
+  IpAddress: string;
 }
 
 type Message = {
@@ -45,6 +56,7 @@ const initialState = {
   connectionState: 'disconnected' as ConnectionState,
   webSocket: null as WebSocket | null,
   messages: [] as Message[], 
+  allUsers: [] as User[],
 }
 
 export const useUserStore = create<UserState>()(
@@ -57,6 +69,7 @@ export const useUserStore = create<UserState>()(
       setRole: (role) => set({ role }),
       setConnectionState: (connectionState) => set({ connectionState }),
       setWebSocket: (webSocket) => set({ webSocket }),
+      setAllUsers: (allUsers) => set({ allUsers }),
       addMessage: (message) => set((state) => {
         // Check for existing message by ID to prevent duplicates
         if (state.messages.some(m => m.Id === message.Id)) {
