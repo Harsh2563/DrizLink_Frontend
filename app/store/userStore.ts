@@ -1,4 +1,5 @@
 // store/userStore.ts
+import toast from 'react-hot-toast'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 
@@ -84,7 +85,8 @@ export const useUserStore = create<UserState>()(
         set(initialState)
       },
       connectWebSocket: async () => {
-        const { ipAddress, username, folderPath, webSocket, addMessage } = get()
+        try {
+          const { ipAddress, username, folderPath, webSocket, addMessage } = get()
         if (webSocket) return
 
         set({ connectionState: 'connecting' })
@@ -128,12 +130,20 @@ export const useUserStore = create<UserState>()(
           }
         }
 
-        ws.onerror = () => {
+        ws.onerror = (event) => {
           set({ connectionState: 'disconnected', webSocket: null })
+          toast.error('WebSocket connection error. Please check your connection and try again.')
         }
 
-        ws.onclose = () => {
+        ws.onclose = (event) => {
           set({ connectionState: 'disconnected', webSocket: null })
+          if (event.code !== 1000) {
+            toast.error(`Server not found. Please check your connection and try again.`)
+          }
+        }
+        } catch (error) {
+          set({ connectionState: 'disconnected', webSocket: null })
+          toast.error(error instanceof Error ? error.message : 'Failed to establish connection')
         }
       }
     }),
