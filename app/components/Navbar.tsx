@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { body } from 'framer-motion/client';
 
 const slideUp = {
   hidden: { y: 20, opacity: 0 },
@@ -14,7 +15,7 @@ const slideUp = {
 };
 
 export default function Navbar() {
-  const { username, reset, connectionState, role } = useUserStore();
+  const { username, reset, connectionState, role, UserId } = useUserStore();
   const router = useRouter();
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
 
@@ -24,7 +25,8 @@ export default function Navbar() {
         {
           headers: {
             'Content-Type': 'application/json',
-          }
+          },
+          ID: UserId,
         }
       );
       toast.success(response.data.message);

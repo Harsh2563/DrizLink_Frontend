@@ -18,17 +18,17 @@ export default function MessageBar() {
   });
 
   const sendMessage = () => {
-    const { webSocket, username } = useUserStore.getState();
+    const { webSocket, username, messages, addMessage } = useUserStore.getState();
     const newMessage = {
-      Id: Date.now().toString(),
-      Content: message.content,
-      Sender: username,
-      Timestamp: new Date().toLocaleTimeString()
+      id: Date.now().toString(),
+      content: message.content,
+      sender: username,
+      timestamp: new Date().toLocaleTimeString()
     };
-    console.log(newMessage, "here ");
     
     if (webSocket && message.content) {
       webSocket.send(JSON.stringify(newMessage));
+      addMessage(newMessage);
       setMessage({ content: '', sender: '', timestamp: '' });
     }
   };

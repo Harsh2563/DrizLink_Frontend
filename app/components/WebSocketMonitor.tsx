@@ -11,23 +11,34 @@ export default function WebSocketMonitor() {
     messages,
     connectWebSocket,
     setAllUsers,
+    ipAddress
   } = useUserStore();
 
   useEffect(() => {
-    const handleConnection = async () => {
-        try {
-          await connectWebSocket()
-        } catch (error) {
-          router.replace('/')
-        }
+    // Attempt reconnect on mount if credentials exist
+    const { ipAddress, username } = useUserStore.getState();
+    if (ipAddress && username) {
+      connectWebSocket();
     }
 
-    handleConnection()
-  }, [pathname, connectionState])
+    // Reconnect when online status changes
+    const handleOnline = () => {
+      if (navigator.onLine && connectionState === 'disconnected') {
+        connectWebSocket();
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, []);
 
   useEffect(() => {
     const getAllUsers = async () => {
-      const response = await axios.get('http://localhost:5000/api/getUsers')
+      const response = await axios.post('http://localhost:5000/api/getUsers',
+        {
+          ip: ipAddress+":8080",
+        }
+      )
       setAllUsers(response.data)
     }
     getAllUsers()

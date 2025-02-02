@@ -41,6 +41,7 @@ export default function ConnectionForm() {
           });
       }
       setConnectionState('connecting')
+      await connectWebSocket()
       router.replace('/home')
     } catch (error: any) {
       toast.error(error.message || "Connection failed");

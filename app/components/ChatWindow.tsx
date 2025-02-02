@@ -45,19 +45,19 @@ export default function ChatWindow() {
       >
         <div className="space-y-2 min-h-full flex flex-col justify-end">
           {messages.map((message, index) => {
-            const showSender = index === 0 || messages[index - 1].Sender !== message.Sender;
-            const isCurrentUser = message.Sender === username;
+            const showSender = index === 0 || messages[index - 1].sender !== message.sender;
+            const isCurrentUser = message.sender === username;
 
             return (
               <motion.div
-                key={`${message.Timestamp}-${index}`}
+                key={`${message.timestamp}-${index}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`}
               >
                 {showSender && (
                   <div className="text-xs text-gray-400 mb-1 px-2">
-                    {message.Sender} • {message.Timestamp}
+                    {message.sender} • {message.timestamp}
                   </div>
                 )}
                 <div
@@ -66,7 +66,7 @@ export default function ChatWindow() {
                   } max-w-[80%]`}
                 >
                   <div className={`text-sm ${isCurrentUser ? 'text-blue-300' : 'text-gray-300'}`}>
-                    {message.Content}
+                    {message.content}
                   </div>
                 </div>
               </motion.div>

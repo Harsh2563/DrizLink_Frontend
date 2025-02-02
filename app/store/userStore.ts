@@ -38,14 +38,14 @@ type User = {
 }
 
 type Message = {
-  Id: string;
-  Content: string;
-  Sender: string;
-  Timestamp: string;
-  File?: {
-    Name: string;
-    Size: number;
-    Type: string;
+  id: string;
+  content: string;
+  sender: string;
+  timestamp: string;
+  file?: {
+    name: string;
+    size: number;
+    type: string;
   } | null;
 };
 
@@ -72,8 +72,7 @@ export const useUserStore = create<UserState>()(
       setWebSocket: (webSocket) => set({ webSocket }),
       setAllUsers: (allUsers) => set({ allUsers }),
       addMessage: (message) => set((state) => {
-        // Check for existing message by ID to prevent duplicates
-        if (state.messages.some(m => m.Id === message.Id)) {
+        if (state.messages.some(m => m.id === message.id)) {
           return state;
         }
         return { messages: [...state.messages, message] };
@@ -85,6 +84,10 @@ export const useUserStore = create<UserState>()(
         set(initialState)
       },
       connectWebSocket: async () => {
+        const state = get()
+        // Prevent duplicate connections
+        if (state.webSocket || state.connectionState === 'connected') return
+
         try {
           const { ipAddress, username, folderPath, webSocket, addMessage } = get()
         if (webSocket) return
@@ -109,23 +112,27 @@ export const useUserStore = create<UserState>()(
             // Handle both JSON and plain text messages
             let message: Message;
             // JSON message
-            message = JSON.parse(rawData.split(': ')[1]);
+            message = JSON.parse(rawData);
             console.log(message);
             
 
             // Validate message structure
-            if (!message.Id || !message.Content || !message.Sender) {
+            if (!message.id || !message.content || !message.sender) {
               throw new Error('Invalid message format');
             }
 
-            get().addMessage(message);
+            message.timestamp = new Date().toLocaleTimeString()
+
+            // if (get().messages.find((m: Message) => m.id === message.id)) return
+
+            get().addMessage(message)
           } catch (error) {
             console.error('Error handling message:', error);
             get().addMessage({
-              Id: `err-${Date.now()}`,
-              Content: `Error: ${error instanceof Error ? error.message : 'Invalid message format'}`,
-              Sender: 'System',
-              Timestamp: new Date().toLocaleTimeString()
+              id: `err-${Date.now()}`,
+              content: `Error: ${error instanceof Error ? error.message : 'Invalid message format'}`,
+              sender: 'System',
+              timestamp: new Date().toLocaleTimeString()
             });
           }
         }
@@ -155,6 +162,7 @@ export const useUserStore = create<UserState>()(
         folderPath: state.folderPath,
         ipAddress: state.ipAddress,
         role: state.role,
+        webSocket: state.webSocket,
         connectionState: state.connectionState,
         messages: state.messages
       })
