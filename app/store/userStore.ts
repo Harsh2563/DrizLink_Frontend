@@ -2,11 +2,13 @@
 import toast from 'react-hot-toast'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
+import { generateUUID } from '../helpers/helper'
 
 type ConnectionState = 'connected' | 'connecting' | 'disconnected'
 type UserRole = 'client' | 'server'
 
 interface UserState {
+  id: string
   username: string
   folderPath: string
   ipAddress: string
@@ -50,6 +52,7 @@ type Message = {
 };
 
 const initialState = {
+  id: '',
   username: '',
   folderPath: '',
   ipAddress: '',
@@ -65,6 +68,7 @@ export const useUserStore = create<UserState>()(
     (set, get) => ({
       ...initialState,
       setUsername: (username) => set({ username }),
+      setId: (id: string) => set({ id }),
       setFolderPath: (folderPath) => set({ folderPath }),
       setIpAddress: (ipAddress) => set({ ipAddress }),
       setRole: (role) => set({ role }),
@@ -97,11 +101,13 @@ export const useUserStore = create<UserState>()(
 
         ws.onopen = () => {
           // Send connection info as a single JSON message
+          const newId = generateUUID()
           ws.send(JSON.stringify({
+            ID: newId,
             Username: username,
             FilePath: folderPath,
           }))
-          set({ webSocket: ws, connectionState: 'connected' });
+          set({ webSocket: ws, connectionState: 'connected', id: newId });
         }
 
         ws.onmessage = (event) => {

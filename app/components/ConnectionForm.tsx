@@ -44,7 +44,7 @@ export default function ConnectionForm() {
       await connectWebSocket()
       router.replace('/home')
     } catch (error: any) {
-      toast.error(error.message || "Connection failed");
+      toast.error("Server with this IP is already running.");
     }
   };
 

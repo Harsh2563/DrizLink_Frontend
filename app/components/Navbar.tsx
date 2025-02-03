@@ -7,7 +7,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { body } from 'framer-motion/client';
 
 const slideUp = {
   hidden: { y: 20, opacity: 0 },
@@ -15,20 +14,25 @@ const slideUp = {
 };
 
 export default function Navbar() {
-  const { username, reset, connectionState, role, UserId } = useUserStore();
+  const { username, reset, connectionState, role, id, ipAddress } = useUserStore();
   const router = useRouter();
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
 
   const handleDisconnect = async () => {
     try {
-      const response = await axios.post(`http://localhost:5000/api/close-${role === 'server' ? 'server' : 'connection'}`, 
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          ID: UserId,
-        }
-      );
+      let response;
+    if (role === 'server') {
+      // For server, only pass IP
+      response = await axios.post(`http://localhost:5000/api/close-server`, {
+        IP: ipAddress+":8080",
+      });
+    } else {
+      // For client, pass both ID and IP
+      response = await axios.post(`http://localhost:5000/api/close-connection`, {
+        ID: id,
+        IP: ipAddress+":8080",
+      });
+    }
       toast.success(response.data.message);
       reset();
       router.push('/');
