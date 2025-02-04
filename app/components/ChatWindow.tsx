@@ -66,7 +66,9 @@ export default function ChatWindow() {
                   } max-w-[80%]`}
                 >
                   <div className={`text-sm ${isCurrentUser ? 'text-blue-300' : 'text-gray-300'}`}>
-                    {message.content}
+                    {typeof message.payload === 'object' 
+                      ? message.payload.content
+                      : message.payload}
                   </div>
                 </div>
               </motion.div>

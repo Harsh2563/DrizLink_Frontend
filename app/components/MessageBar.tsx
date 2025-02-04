@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useUserStore } from '../store/userStore';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { log } from 'console';
 
 const slideUp = {
   hidden: { y: 20, opacity: 0 },
@@ -18,15 +19,20 @@ export default function MessageBar() {
   });
 
   const sendMessage = () => {
-    const { webSocket, username, messages, addMessage } = useUserStore.getState();
+    const { webSocket, username, addMessage } = useUserStore.getState();
+    if(!webSocket) {
+      toast.error("No connection established");
+      return;
+    }
     const newMessage = {
-      id: Date.now().toString(),
-      content: message.content,
+      payload: {
+        content: message.content
+      },
       sender: username,
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: new Date().toLocaleTimeString(),
+      type: 'text'
     };
-    
-    if (webSocket && message.content) {
+    if (webSocket && message.content.length > 0) {
       webSocket.send(JSON.stringify(newMessage));
       addMessage(newMessage);
       setMessage({ content: '', sender: '', timestamp: '' });

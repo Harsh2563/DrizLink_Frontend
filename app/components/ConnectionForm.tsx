@@ -114,7 +114,6 @@ export default function ConnectionForm() {
             animate={{ opacity: 1 }}
           >
             <div className={`h-2 w-2 rounded-full ${
-              connectionState === 'connected' ? 'bg-green-400' : 
               connectionState === 'connecting' ? 'bg-yellow-400' : 'bg-red-400'
             }`} />
             <span className="text-sm text-gray-400 capitalize">

@@ -41,7 +41,7 @@ export default function WebSocketMonitor() {
       )
       const newUsers = response.data
       console.log(newUsers);
-      
+
       newUsers.filter((user: any) => user.IsOnline === true)
       setAllUsers(newUsers)
     }
