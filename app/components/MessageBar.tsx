@@ -20,7 +20,7 @@ export default function MessageBar() {
 
   const sendMessage = () => {
     const { webSocket, username, addMessage } = useUserStore.getState();
-    if(!webSocket) {
+    if (!webSocket) {
       toast.error("No connection established");
       return;
     }
@@ -34,7 +34,6 @@ export default function MessageBar() {
     };
     if (webSocket && message.content.length > 0) {
       webSocket.send(JSON.stringify(newMessage));
-      addMessage(newMessage);
       setMessage({ content: '', sender: '', timestamp: '' });
     }
   };
