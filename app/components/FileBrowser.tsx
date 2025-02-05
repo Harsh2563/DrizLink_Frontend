@@ -15,6 +15,7 @@ const fadeIn = {
 
 export default function FileBrowser() {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const { allUsers, username, ipAddress, files, webSocket, id } = useUserStore();
 
   const handleBrowseFiles = () => {
@@ -30,6 +31,8 @@ export default function FileBrowser() {
       toast.error('No connection established');
       return;
     }
+
+    setSelectedUserId(user.UserId);
 
     // Send file request to selected user
     const request = {
@@ -47,7 +50,7 @@ export default function FileBrowser() {
   return (
     <motion.div
       variants={fadeIn}
-      className="overflow-y-hidden w-2/3 bg-gray-800/50 backdrop-blur-lg rounded-xl border border-gray-700/50 p-4"
+      className="w-2/3 bg-gray-800/50 backdrop-blur-lg rounded-xl border border-gray-700/50 p-4"
     >
       <div className="flex items-center mb-4">
         <h2 className="text-gray-300 text-lg font-semibold">File Browser</h2>
@@ -74,7 +77,7 @@ export default function FileBrowser() {
             Browse Files
           </motion.button>
         ) : (
-          <FileList files={files} className="flex-1 overflow-y-auto pr-2 custom-scrollbar" />
+          <FileList files={files} userId={selectedUserId} className="flex-1 overflow-y-auto pr-2 custom-scrollbar" />
         )}
       </motion.div>
 
